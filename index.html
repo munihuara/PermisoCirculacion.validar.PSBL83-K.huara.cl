@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISTEMA DE VERIFICACIÓN DE DOCUMENTOS - GOBIERNO DE CHILE</title>
+    
+    <script>
+        const CONFIG = {
+            entidad: "MUNICIPALIDAD DE HUARA",
+            departamento: "Dirección de Tránsito y Transporte Público",
+            estado: "PAGADO",
+            tipoDocumento: "PERMISO DE CIRCULACIÓN 2025",
+            fechaEmision: "12 de Marzo de 2025 - 09:45 AM",
+            nroSerie: "2025020",
+            patente: "PSBL83-K",
+            vehiculo: "2008 PURETECH 130 1.2",
+            propietario: "DANIEL ANTONIO HUENUL ASTETE",
+            vencimiento: "31-03-2026",
+            montoTotal: "$186.032",
+            tiempoCarga: 1800 // Milisegundos que dura la pantalla de carga
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Public+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --gob-blue: #0033a0; /* Azul institucional */
+            --gob-red: #d52b1e;
+            --bg-body: #f4f7f9;
+            --text-main: #1a1a1a;
+            --border-color: #d1d5db;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            font-family: 'Public Sans', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- PANTALLA DE CARGA --- */
+        #loader {
+            position: fixed; inset: 0;
+            background: white;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        .loader-bar {
+            width: 200px; height: 4px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .loader-progress {
+            width: 0%; height: 100%;
+            background: var(--gob-blue);
+            animation: loadProgress 1.5s ease-in-out forwards;
+        }
+
+        /* --- CONTENEDOR PROFESIONAL --- */
+        .doc-card {
+            background: white;
+            width: 95%; max-width: 500px;
+            border-top: 6px solid var(--gob-blue);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            padding: 0;
+            display: none; /* Se activa con JS */
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .header {
+            padding: 30px 30px 10px 30px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+
+        .entidad-name { font-weight: 800; font-size: 1.1rem; color: #333; text-transform: uppercase; }
+        .dept-name { font-size: 0.85rem; color: #666; margin-top: 4px; }
+
+        .status-banner {
+            background: #e7f3ff;
+            color: var(--gob-blue);
+            padding: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .content { padding: 30px; }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 8px;
+        }
+
+        .info-row:last-child { border-bottom: none; }
+
+        .label {
+            font-size: 0.75rem;
+            color: #777;
+            text-transform: uppercase;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #111;
+            flex: 2;
+            text-align: right;
+        }
+
+        .time-box {
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: 'Roboto Mono', monospace;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.1rem;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .footer-legal {
+            background: #f9fafb;
+            padding: 15px 30px;
+            font-size: 0.7rem;
+            color: #999;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        /* --- ANIMACIONES --- */
+        @keyframes loadProgress { to { width: 100%; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div style="font-weight: 700; letter-spacing: 2px; color: #333;" id="load-text">CONECTANDO A SERVIDORES...</div>
+        <div class="loader-bar"><div class="loader-progress"></div></div>
+    </div>
+
+    <div class="doc-card" id="main-card">
+        <div class="header">
+            <div class="entidad-name" id="view-entidad">---</div>
+            <div class="dept-name" id="view-dept">---</div>
+        </div>
+
+        <div class="status-banner" id="view-estado">DOCUMENTO VERIFICADO</div>
+
+        <div class="content">
+            <div class="info-row">
+                <span class="label">Documento</span>
+                <span class="value" id="view-doc">---</span>
+            </div>
+            <div class="info-row">
+                <span class="label">F. Emisión</span>
+                <span class="value" id="view-emision">---</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Propietario</span>
+                <span class="value" id="view-propietario">---</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Patente</span>
+                <span class="value" id="view-patente" style="font-family: 'Roboto Mono'; background: #eee; padding: 2px 6px;">---</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Vehículo</span>
+                <span class="value" id="view-vehiculo">---</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Vencimiento</span>
+                <span class="value" id="view-venc" style="color: var(--gob-red);">---</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Total Pagado</span>
+                <span class="value" id="view-monto">---</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Serie / Verif.</span>
+                <span class="value" id="view-serie" style="font-size: 0.8rem;">---</span>
+            </div>
+
+            <div style="margin-top: 25px;">
+                <span class="label" style="display: block; text-align: center; margin-bottom: 5px;">Fecha y Hora de Consulta Local</span>
+                <div class="time-box" id="live-clock">00:00:00</div>
+            </div>
+        </div>
+
+        <div class="footer-legal">
+            Este documento digital cuenta con firma electrónica avanzada. <br>
+            La información mostrada corresponde a los registros oficiales actualizados.
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Cargar datos desde CONFIG
+            document.getElementById('load-text').textContent = CONFIG.entidad;
+            document.getElementById('view-entidad').textContent = CONFIG.entidad;
+            document.getElementById('view-dept').textContent = CONFIG.departamento;
+            document.getElementById('view-estado').textContent = CONFIG.estado;
+            document.getElementById('view-doc').textContent = CONFIG.tipoDocumento;
+            document.getElementById('view-emision').textContent = CONFIG.fechaEmision;
+            document.getElementById('view-propietario').textContent = CONFIG.propietario;
+            document.getElementById('view-patente').textContent = CONFIG.patente;
+            document.getElementById('view-vehiculo').textContent = CONFIG.vehiculo;
+            document.getElementById('view-venc').textContent = CONFIG.vencimiento;
+            document.getElementById('view-monto').textContent = CONFIG.montoTotal;
+            document.getElementById('view-serie').textContent = `${CONFIG.nroSerie} | ${CONFIG.codVerificacion}`;
+
+            // Reloj en tiempo real
+            function updateClock() {
+                const now = new Date();
+                const timeString = now.toLocaleDateString() + ' | ' + now.toLocaleTimeString();
+                document.getElementById('live-clock').textContent = timeString;
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // Lógica de Loader
+            setTimeout(() => {
+                document.getElementById('loader').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loader').style.display = 'none';
+                    document.getElementById('main-card').style.display = 'block';
+                }, 500);
+            }, CONFIG.tiempoCarga);
+        });
+    </script>
+</body>
+</html>
